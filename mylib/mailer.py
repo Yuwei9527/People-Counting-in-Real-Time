@@ -18,13 +18,17 @@ class Mailer:
         self.PORT = 465
         self.server = smtplib.SMTP_SSL('smtp.gmail.com', self.PORT)
 
-    def send(self, mail):
+    def send(self, mail, cc, mode): # mode0: 無CC, mode1:有CC
         self.server = smtplib.SMTP_SSL('smtp.gmail.com', self.PORT)
         self.server.login(self.EMAIL, self.PASS)
         # message to be sent
         SUBJECT = 'ALERT!'
         TEXT = f'People limit exceeded in your building!'
-        message = 'Subject: {}\n\n{}'.format(SUBJECT, TEXT)
+        # message = 'Subject: {}\n\n{}'.format(SUBJECT, TEXT)
+        if mode == 0:
+            message = 'From: {}\r\n'.format(self.EMAIL) + 'To: {}\r\n'.format(mail) + 'Subject: {}\n\n{}'.format(SUBJECT, TEXT)
+        elif mode == 1:
+            message = 'From: {}\r\n'.format(self.EMAIL) + 'To: {}\r\n'.format(mail) + 'CC: {}\r\n'.format(cc) + 'Subject: {}\n\n{}'.format(SUBJECT, TEXT)
 
         # sending the mail
         self.server.sendmail(self.EMAIL, mail, message)
