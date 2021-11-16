@@ -29,6 +29,12 @@ def run():
 		help="minimum probability to filter weak detections")
 	ap.add_argument("-s", "--skip-frames", type=int, default=30,
 		help="# of skip frames between detections")
+	ap.add_argument("-r", "--recipient_address",
+		help="put all recipient address here") # aaa.mail,bbb.mail
+	ap.add_argument("-cc", "--cc_address",default='',
+		help="put all cc address here") # aaa.mail,bbb.mail
+    
+    
 	args = vars(ap.parse_args())
 
 	# initialize the list of class labels MobileNet SSD was trained to
@@ -197,6 +203,15 @@ def run():
 		# centroids with (2) the newly computed object centroids
 		objects = ct.update(rects)
 
+
+
+		# 主要收件人 & 密件收件人
+		msg_to_main = args["recipient_address"] # 匯入所有主要收件人
+		msg_to_cc   = args["cc_address"] # 匯入所有密件收件人
+		
+		num_msg_to_main = msg_to_main.split("@") # 以@切分主要收件人
+		num_msg_to_cc = msg_to_cc.split("@")# 以@切分密件收件
+		
 		# loop over the tracked objects
 		for (objectID, centroid) in objects.items():
 			# check to see if a trackable object exists for the current
@@ -241,7 +256,24 @@ def run():
 								cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 2)
 							if config.ALERT:
 								print("[INFO] Sending email alert..")
-								Mailer().send(config.MAIL)
+		 						# 不CC
+								if len(msg_to_cc) == 0:
+									# 主要收件人_多
+									if len(num_msg_to_main) != 1:
+										Mailer().send(num_msg_to_main.split(","), msg_to_cc, 0) # 第三個引數 mode=0 代表沒有CC收件人
+									# 主要收件人_單
+									else:
+										Mailer().send(num_msg_to_main, msg_to_cc, 0)
+								# 有CC
+								else:
+									if len(num_msg_to_main) != 1 and len(num_msg_to_cc) != 1: # 多對多
+										Mailer().send(msg_to_main.split(","), msg_to_cc.split(","), 1) # 第三個引數 mode=1 代表存在CC收件人
+									elif len(num_msg_to_main) != 1 and len(num_msg_to_cc) == 1: # 多對單
+										Mailer().send(msg_to_main.split(","), msg_to_cc, 1) 
+									elif len(num_msg_to_main) == 1 and len(num_msg_to_cc) != 1: # 單對多
+										Mailer().send(msg_to_main, msg_to_cc.split(","), 1) 
+									elif len(num_msg_to_main) != 1 and len(num_msg_to_cc) != 1: # 單對單
+										Mailer().send(msg_to_main, msg_to_cc, 1) 
 								print("[INFO] Alert sent")
 
 						to.counted = True
@@ -273,7 +305,7 @@ def run():
 		("Total people inside", x),
 		]
 
-                # Display the output
+		# Display the output
 		for (i, (k, v)) in enumerate(info):
 			text = "{}: {}".format(k, v)
 			cv2.putText(frame, text, (10, H - ((i * 20) + 20)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
